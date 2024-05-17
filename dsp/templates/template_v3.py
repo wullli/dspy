@@ -1,5 +1,7 @@
 from typing import Callable
 
+from dspy import OldInputField
+
 from dsp.templates import Field, TemplateV2, format_answers, passages2text
 
 
@@ -44,6 +46,7 @@ class Template(TemplateV2):
                 input_variable=key,
                 output_variable=key,
                 separator=separator,
+                type="input" if isinstance(value, OldInputField) else "output"
             )
             self.fields.append(field)
 

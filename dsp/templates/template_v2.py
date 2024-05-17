@@ -7,7 +7,7 @@ from dsp.primitives.demonstrate import Example
 
 from .utils import format_answers, passages2text
 
-Field = namedtuple("Field", "name separator input_variable output_variable description")
+Field = namedtuple("Field", "name separator input_variable output_variable description type")
 
 # TODO: de-duplicate with dsp/templates/template.py
 
@@ -118,14 +118,24 @@ class TemplateV2:
         if (not show_guidelines) or (hasattr(dsp.settings, "show_guidelines") and not dsp.settings.show_guidelines):
             return ""
 
-        result = "Follow the following format.\n\n"
+        input_desc = "Input description.\n\n"
+        example = dsp.Example()
+        for field in self.fields:
+            if field.type == "input":
+                example[field.input_variable] = field.description
+        example.augmented = self._has_augmented_guidelines()
+        input_desc += self.query(example)
+
+        output_format = "Follow the following format.\n\n"
 
         example = dsp.Example()
         for field in self.fields:
-            example[field.input_variable] = field.description
+            if field.type == "output":
+                example[field.input_variable] = field.description
         example.augmented = self._has_augmented_guidelines()
+        output_format += self.query(example)
 
-        result += self.query(example)
+        result = f"{input_desc}\n\n---\n\n{output_format}"
         return result
 
     def _has_augmented_guidelines(self):
