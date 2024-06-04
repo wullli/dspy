@@ -68,7 +68,7 @@ class TemplateV2:
 
             template = template[len(match.group(0)) :].strip()
 
-    def query(self, example: Example, is_demo: bool = False) -> str:
+    def query(self, example: Example, is_demo: bool = False, guidelines=False) -> str:
         """Retrieves the input variables from the example and formats them into a query string."""
         result: list[str] = []
 
@@ -83,14 +83,15 @@ class TemplateV2:
             ]
 
             # If there are no inputs, set the first field to ""
-            if not any(has_value):
-                example[self.fields[0].input_variable] = ""
-            # Otherwise find the first field without a value.
-            else:
-                for i in range(1, len(has_value)):
-                    if has_value[i - 1] and not any(has_value[i:]):
-                        example[self.fields[i].input_variable] = ""
-                        break
+            if not guidelines:
+                if not any(has_value):
+                    example[self.fields[0].input_variable] = ""
+                # Otherwise find the first field without a value.
+                else:
+                    for i in range(1, len(has_value)):
+                        if has_value[i - 1] and not any(has_value[i:]):
+                            example[self.fields[i].input_variable] = ""
+                            break
 
         for field in self.fields:
             if field.input_variable in example and example[field.input_variable] is not None:
@@ -118,13 +119,15 @@ class TemplateV2:
         if (not show_guidelines) or (hasattr(dsp.settings, "show_guidelines") and not dsp.settings.show_guidelines):
             return ""
 
+        output_field_names = [field.name for field in self.fields if field.type == "output"]
+
         input_desc = "Input description.\n\n"
         example = dsp.Example()
         for field in self.fields:
-            if field.type == "input":
+            if field.type == "input" and field.name not in output_field_names:
                 example[field.input_variable] = field.description
         example.augmented = self._has_augmented_guidelines()
-        input_desc += self.query(example)
+        input_desc += self.query(example, guidelines=True)
 
         output_format = "Follow the following format.\n\n"
 
